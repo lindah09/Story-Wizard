@@ -1,0 +1,740 @@
+:root {
+  --sky-top: #a8d8ff;
+  --sky-bottom: #ffe8c2;
+  --card-bg: #fffaf2;
+  --card-border: #f0d9a8;
+  --ink: #4a3c2c;
+  --ink-soft: #7a6a54;
+  --accent: #ff8c5a;
+  --accent-dark: #e8703c;
+  --accent-2: #6fc3a0;
+  --selected: #ffb347;
+  --shadow: 0 6px 0 rgba(0, 0, 0, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* The `hidden` attribute must always win over any explicit `display`
+   set elsewhere in this stylesheet (e.g. flex containers toggled via JS). */
+[hidden] {
+  display: none !important;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: 'Quicksand', 'Trebuchet MS', system-ui, sans-serif;
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+h1, h2, legend {
+  font-family: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif;
+}
+
+#app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+}
+
+.screen {
+  display: none;
+}
+
+.screen.active {
+  display: block;
+  animation: fade-in 0.35s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Persistent narration control ---------- */
+
+.narration-toggle {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 100;
+  font-family: 'Baloo 2', inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 10px 18px;
+  border: 3px solid var(--accent-dark);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--accent-dark);
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.08);
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.narration-toggle:hover {
+  transform: translateY(-2px);
+}
+
+.narration-toggle:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 480px) {
+  .narration-toggle {
+    top: 10px;
+    right: 10px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+}
+
+/* ---------- Header ---------- */
+
+.app-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.app-header h1 {
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  font-weight: 800;
+  margin: 0 0 8px;
+  color: var(--accent-dark);
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.app-subtitle {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* ---------- Choice groups ---------- */
+
+.setup-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.choice-group {
+  background: var(--card-bg);
+  border: 3px solid var(--card-border);
+  border-radius: 20px;
+  padding: 16px 18px 20px;
+  box-shadow: var(--shadow);
+}
+
+.choice-group legend {
+  padding: 0 10px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent-dark);
+  text-shadow:
+    0 0 8px rgba(255, 255, 255, 0.9),
+    0 0 12px rgba(255, 255, 255, 0.7),
+    0 1px 1px rgba(255, 255, 255, 0.9);
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border: 3px solid var(--card-border);
+  border-radius: 16px;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.choice-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.choice-card:active {
+  transform: translateY(0);
+}
+
+.choice-card.selected {
+  background: var(--selected);
+  border-color: var(--accent-dark);
+  color: #4a2e0f;
+  box-shadow: 0 3px 0 var(--accent-dark);
+}
+
+.choice-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  animation: icon-idle 3.4s ease-in-out infinite;
+}
+
+.choice-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.choice-card:hover .choice-icon,
+.choice-card.selected .choice-icon {
+  animation: icon-bounce 0.5s ease;
+}
+
+@keyframes icon-idle {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(-3deg); }
+}
+
+@keyframes icon-bounce {
+  0% { transform: scale(1) rotate(0deg); }
+  30% { transform: scale(1.18) rotate(-8deg); }
+  60% { transform: scale(0.94) rotate(6deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choice-icon,
+  .choice-card:hover .choice-icon,
+  .choice-card.selected .choice-icon {
+    animation: none;
+  }
+}
+
+.choice-label {
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ---------- Name input ---------- */
+
+.name-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 1.3rem;
+  font-family: 'Baloo 2', inherit;
+  font-weight: 600;
+  border: 3px solid var(--card-border);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+}
+
+.name-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.name-group .name-input {
+  margin-top: 8px;
+}
+
+/* ---------- Footer / CTA ---------- */
+
+.setup-footer {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.primary-btn {
+  font-family: 'Baloo 2', inherit;
+  font-size: 1.4rem;
+  font-weight: 700;
+  padding: 16px 40px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffa76a, var(--accent));
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 5px 0 var(--accent-dark);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.primary-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+
+.primary-btn:not(:disabled):active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--accent-dark);
+}
+
+.primary-btn:disabled {
+  background: #d8cdbc;
+  box-shadow: 0 5px 0 #b8ac98;
+  cursor: not-allowed;
+  color: #fff8;
+}
+
+.setup-hint {
+  margin-top: 12px;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.secondary-btn {
+  font-family: 'Baloo 2', inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 10px 22px;
+  border: 3px solid var(--accent-2);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--accent-2);
+  cursor: pointer;
+  margin-top: 18px;
+}
+
+.secondary-btn:hover {
+  background: var(--accent-2);
+  color: #fff;
+}
+
+/* ---------- Recap card (temporary, for testing setup screen) ---------- */
+
+.recap-card {
+  max-width: 560px;
+  margin: 40px auto;
+  background: var(--card-bg);
+  border: 3px solid var(--card-border);
+  border-radius: 20px;
+  padding: 28px 30px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.recap-card h2 {
+  color: var(--accent-dark);
+  margin-top: 0;
+}
+
+.recap-list {
+  text-align: left;
+  margin: 20px 0 0;
+}
+
+.recap-list dt {
+  font-weight: 700;
+  color: var(--accent-dark);
+  margin-top: 10px;
+}
+
+.recap-list dd {
+  margin: 2px 0 0;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 480px) {
+  .choice-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ===================== Story screen ===================== */
+
+.story-container {
+  max-width: 620px;
+  margin: 20px auto 0;
+}
+
+.story-progress {
+  height: 14px;
+  background: #fff;
+  border: 2px solid var(--card-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.story-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.story-progress-label {
+  text-align: center;
+  margin: 8px 0 0;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.story-nav {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.story-nav-btn {
+  font-family: 'Baloo 2', inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 8px 16px;
+  border: 3px solid var(--card-border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.story-nav-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.story-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.text-link-btn {
+  display: block;
+  margin: 18px auto 0;
+  background: none;
+  border: none;
+  font-family: 'Quicksand', inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.text-link-btn:hover {
+  color: var(--accent-dark);
+}
+
+.story-illustration {
+  margin-top: 18px;
+  border: 4px solid var(--card-border);
+  border-radius: 20px;
+  background: #fff;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.story-illustration.illustration-failed {
+  background: #fff4e0;
+}
+
+.illustration-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.illustration-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-soft);
+  font-weight: 700;
+  padding: 40px 20px;
+}
+
+.story-card {
+  margin-top: 18px;
+  background: var(--card-bg);
+  border: 3px solid var(--card-border);
+  border-radius: 20px;
+  padding: 22px 24px;
+  box-shadow: var(--shadow);
+}
+
+.story-text {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.55;
+  font-family: 'Baloo 2', inherit;
+  font-weight: 500;
+  color: var(--ink);
+  min-height: 1.6em;
+}
+
+.story-loading,
+.illustration-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 4px solid var(--card-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.story-interaction {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.story-interaction-prompt {
+  font-family: 'Baloo 2', inherit;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--accent-dark);
+  margin: 0 0 14px;
+}
+
+.story-choice-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.story-choice-btn {
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 14px 22px;
+  border: 3px solid var(--card-border);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.story-choice-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.story-choice-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.story-choice-btn.picked {
+  background: var(--selected);
+  border-color: var(--accent-dark);
+}
+
+.story-input-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.story-input-row input {
+  width: 100%;
+  max-width: 380px;
+  padding: 14px 16px;
+  font-size: 1.15rem;
+  font-family: 'Baloo 2', inherit;
+  font-weight: 600;
+  border: 3px solid var(--card-border);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  text-align: center;
+}
+
+.story-input-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.story-error {
+  margin-top: 24px;
+  text-align: center;
+  background: var(--card-bg);
+  border: 3px solid var(--card-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+/* ===================== Ending screen ===================== */
+
+.ending-container {
+  max-width: 620px;
+  margin: 20px auto 0;
+}
+
+.ending-step {
+  text-align: center;
+}
+
+#ending-title-step {
+  background: var(--card-bg);
+  border: 3px solid var(--card-border);
+  border-radius: 20px;
+  padding: 32px 28px;
+  box-shadow: var(--shadow);
+}
+
+#ending-title-step h2 {
+  color: var(--accent-dark);
+  margin-top: 0;
+  font-size: 2rem;
+}
+
+#ending-title-step > p {
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 16px;
+}
+
+#ending-title-step .name-input {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 14px auto 0;
+  text-align: center;
+}
+
+#ending-title-step .primary-btn {
+  margin-top: 20px;
+}
+
+.cover-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.cover-frame {
+  position: relative;
+  border: 4px solid var(--card-border);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background: #fff;
+}
+
+.cover-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+}
+
+.cover-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 40px 24px 24px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(40, 24, 10, 0.75) 60%, rgba(40, 24, 10, 0.85) 100%);
+  text-align: center;
+}
+
+.cover-title-text {
+  margin: 0;
+  font-family: 'Baloo 2', inherit;
+  font-weight: 800;
+  font-size: clamp(1.5rem, 6vw, 2.2rem);
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  line-height: 1.2;
+}
+
+.cover-date-text {
+  margin: 8px 0 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.ending-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.story-recap {
+  margin-top: 30px;
+  background: var(--card-bg);
+  border: 3px solid var(--card-border);
+  border-radius: 20px;
+  padding: 26px 28px;
+  text-align: left;
+  box-shadow: var(--shadow);
+}
+
+.story-recap h3 {
+  font-family: 'Baloo 2', inherit;
+  color: var(--accent-dark);
+  margin-top: 0;
+  text-align: center;
+}
+
+.recap-chunk-text {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--ink);
+  margin: 0 0 18px;
+}
+
+.recap-illustration {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto 18px;
+  border-radius: 16px;
+  border: 3px solid var(--card-border);
+  box-shadow: var(--shadow);
+}

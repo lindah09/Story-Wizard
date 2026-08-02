@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Story Wizard</title>
+
+<!-- PWA: installable home-screen app -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#ff8c5a">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/icons/favicon-64.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Story Wizard">
+<meta name="mobile-web-app-capable" content="yes">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <button type="button" id="narration-toggle-btn" class="narration-toggle" hidden>
+    ⏸️ Pause
+  </button>
+
+  <!-- ===================== SETUP SCREEN ===================== -->
+  <section id="screen-setup" class="screen active">
+    <header class="app-header">
+      <h1>✨ Story Wizard ✨</h1>
+      <p class="app-subtitle">Let's build your very own story together!</p>
+    </header>
+
+    <div class="setup-groups">
+
+      <fieldset class="choice-group" data-key="genre">
+        <legend>Pick a world</legend>
+        <div class="choice-grid">
+          <button type="button" class="choice-card" data-value="Space Voyage">
+            <span class="choice-icon" data-icon="space-voyage"></span><span class="choice-label">Space Voyage</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Ocean Adventure">
+            <span class="choice-icon" data-icon="ocean-adventure"></span><span class="choice-label">Ocean Adventure</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Fantasy Kingdom">
+            <span class="choice-icon" data-icon="fantasy-kingdom"></span><span class="choice-label">Fantasy Kingdom</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Enchanted Forest">
+            <span class="choice-icon" data-icon="enchanted-forest"></span><span class="choice-label">Enchanted Forest</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Pirate Seas">
+            <span class="choice-icon" data-icon="pirate-seas"></span><span class="choice-label">Pirate Seas</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Dinosaur Valley">
+            <span class="choice-icon" data-icon="dinosaur-valley"></span><span class="choice-label">Dinosaur Valley</span>
+          </button>
+        </div>
+      </fieldset>
+
+      <fieldset class="choice-group" data-key="characterType">
+        <legend>Who is your hero?</legend>
+        <div class="choice-grid">
+          <button type="button" class="choice-card" data-value="Young Wizard">
+            <span class="choice-icon" data-icon="young-wizard"></span><span class="choice-label">Young Wizard</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Brave Knight">
+            <span class="choice-icon" data-icon="brave-knight"></span><span class="choice-label">Brave Knight</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Animal Friend">
+            <span class="choice-icon" data-icon="animal-friend"></span><span class="choice-label">Animal Friend</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Curious Robot">
+            <span class="choice-icon" data-icon="curious-robot"></span><span class="choice-label">Curious Robot</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Shy Monster">
+            <span class="choice-icon" data-icon="shy-monster"></span><span class="choice-label">Shy Monster</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Silly Explorer">
+            <span class="choice-icon" data-icon="silly-explorer"></span><span class="choice-label">Silly Explorer</span>
+          </button>
+        </div>
+      </fieldset>
+
+      <fieldset class="choice-group" data-key="characterTrait">
+        <legend>What makes them special?</legend>
+        <div class="choice-grid">
+          <button type="button" class="choice-card" data-value="Curious">
+            <span class="choice-icon" data-icon="trait-curious"></span><span class="choice-label">Curious</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Brave">
+            <span class="choice-icon" data-icon="trait-brave"></span><span class="choice-label">Brave</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Clever">
+            <span class="choice-icon" data-icon="trait-clever"></span><span class="choice-label">Clever</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Funny">
+            <span class="choice-icon" data-icon="trait-funny"></span><span class="choice-label">Funny</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Kind">
+            <span class="choice-icon" data-icon="trait-kind"></span><span class="choice-label">Kind</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Creative">
+            <span class="choice-icon" data-icon="trait-creative"></span><span class="choice-label">Creative</span>
+          </button>
+        </div>
+      </fieldset>
+
+      <fieldset class="choice-group" data-key="sidekick">
+        <legend>Choose a sidekick</legend>
+        <div class="choice-grid">
+          <button type="button" class="choice-card" data-value="Baby Dragon">
+            <span class="choice-icon" data-icon="baby-dragon"></span><span class="choice-label">Baby Dragon</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Wise Owl">
+            <span class="choice-icon" data-icon="wise-owl"></span><span class="choice-label">Wise Owl</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Loyal Puppy">
+            <span class="choice-icon" data-icon="loyal-puppy"></span><span class="choice-label">Loyal Puppy</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Chatty Squirrel">
+            <span class="choice-icon" data-icon="chatty-squirrel"></span><span class="choice-label">Chatty Squirrel</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Magic Butterfly">
+            <span class="choice-icon" data-icon="magic-butterfly"></span><span class="choice-label">Magic Butterfly</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Steady Turtle">
+            <span class="choice-icon" data-icon="steady-turtle"></span><span class="choice-label">Steady Turtle</span>
+          </button>
+        </div>
+      </fieldset>
+
+      <fieldset class="choice-group" data-key="plotTwist">
+        <legend>Pick a surprise for later</legend>
+        <div class="choice-grid">
+          <button type="button" class="choice-card" data-value="A Hidden Map">
+            <span class="choice-icon" data-icon="hidden-map"></span><span class="choice-label">A Hidden Map</span>
+          </button>
+          <button type="button" class="choice-card" data-value="A Secret Door">
+            <span class="choice-icon" data-icon="secret-door"></span><span class="choice-label">A Secret Door</span>
+          </button>
+          <button type="button" class="choice-card" data-value="A Sudden Storm">
+            <span class="choice-icon" data-icon="sudden-storm"></span><span class="choice-label">A Sudden Storm</span>
+          </button>
+          <button type="button" class="choice-card" data-value="A Mysterious Stranger">
+            <span class="choice-icon" data-icon="mysterious-stranger"></span><span class="choice-label">A Mysterious Stranger</span>
+          </button>
+          <button type="button" class="choice-card" data-value="A Silly Spell Gone Wrong">
+            <span class="choice-icon" data-icon="silly-spell"></span><span class="choice-label">A Silly Spell Gone Wrong</span>
+          </button>
+          <button type="button" class="choice-card" data-value="A Locked Treasure">
+            <span class="choice-icon" data-icon="locked-treasure"></span><span class="choice-label">A Locked Treasure</span>
+          </button>
+          <button type="button" class="choice-card" data-value="A Talking Statue">
+            <span class="choice-icon" data-icon="talking-statue"></span><span class="choice-label">A Talking Statue</span>
+          </button>
+          <button type="button" class="choice-card" data-value="A Riddle in the Clouds">
+            <span class="choice-icon" data-icon="riddle-clouds"></span><span class="choice-label">A Riddle in the Clouds</span>
+          </button>
+          <button type="button" class="choice-card" data-value="A Shrinking Potion">
+            <span class="choice-icon" data-icon="shrinking-potion"></span><span class="choice-label">A Shrinking Potion</span>
+          </button>
+          <button type="button" class="choice-card" data-value="A Friendly Ghost">
+            <span class="choice-icon" data-icon="friendly-ghost"></span><span class="choice-label">A Friendly Ghost</span>
+          </button>
+        </div>
+      </fieldset>
+
+      <fieldset class="choice-group" data-key="endingVibe">
+        <legend>How should it end?</legend>
+        <div class="choice-grid">
+          <button type="button" class="choice-card" data-value="Big Celebration">
+            <span class="choice-icon" data-icon="big-celebration"></span><span class="choice-label">Big Celebration</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Cozy Homecoming">
+            <span class="choice-icon" data-icon="cozy-homecoming"></span><span class="choice-label">Cozy Homecoming</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Amazing Discovery">
+            <span class="choice-icon" data-icon="amazing-discovery"></span><span class="choice-label">Amazing Discovery</span>
+          </button>
+          <button type="button" class="choice-card" data-value="New Best Friend">
+            <span class="choice-icon" data-icon="new-best-friend"></span><span class="choice-label">New Best Friend</span>
+          </button>
+          <button type="button" class="choice-card" data-value="Silly Surprise">
+            <span class="choice-icon" data-icon="silly-surprise"></span><span class="choice-label">Silly Surprise</span>
+          </button>
+        </div>
+      </fieldset>
+
+      <fieldset class="choice-group name-group">
+        <legend>What's your hero's name?</legend>
+        <input
+          type="text"
+          id="character-name"
+          class="name-input"
+          maxlength="20"
+          autocomplete="off"
+          placeholder="Type a name here...">
+      </fieldset>
+
+    </div>
+
+    <div class="setup-footer">
+      <button type="button" id="start-story-btn" class="primary-btn" disabled>
+        Start My Story! 📖
+      </button>
+      <p id="setup-hint" class="setup-hint">Pick one of each above to begin</p>
+    </div>
+  </section>
+
+  <!-- ===================== STORY SCREEN ===================== -->
+  <section id="screen-story" class="screen">
+    <div class="story-container">
+
+      <div id="story-progress" class="story-progress">
+        <div id="story-progress-fill" class="story-progress-fill"></div>
+      </div>
+      <p id="story-progress-label" class="story-progress-label"></p>
+
+      <div class="story-nav">
+        <button type="button" id="story-back-btn" class="story-nav-btn" disabled>⬅ Back</button>
+        <button type="button" id="story-forward-btn" class="story-nav-btn" disabled>Forward ➡</button>
+      </div>
+
+      <div id="story-illustration" class="story-illustration" hidden>
+        <img id="illustration-img" class="illustration-img" alt="A picture from the story" hidden>
+        <div id="illustration-loading" class="illustration-loading">
+          <span class="spinner"></span> Drawing a picture...
+        </div>
+      </div>
+
+      <div id="story-card" class="story-card">
+        <p id="story-text" class="story-text"></p>
+      </div>
+
+      <div id="story-loading" class="story-loading" hidden>
+        <span class="spinner"></span> Writing the next part...
+      </div>
+
+      <div id="story-interaction" class="story-interaction" hidden></div>
+
+      <div id="story-error" class="story-error" hidden>
+        <p>Oops, the story got a little tangled! Let's try that again.</p>
+        <button type="button" id="story-retry-btn" class="secondary-btn">Try again</button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== ENDING SCREEN ===================== -->
+  <section id="screen-ending" class="screen">
+    <div class="ending-container">
+
+      <!-- Step 1: choose a title -->
+      <div id="ending-title-step" class="ending-step">
+        <h2>The End! ✨</h2>
+        <p>What should we call your story?</p>
+        <input
+          type="text"
+          id="story-title-input"
+          class="name-input"
+          maxlength="40"
+          autocomplete="off">
+        <button type="button" id="create-cover-btn" class="primary-btn" disabled>
+          Create My Book Cover! 🎨
+        </button>
+
+        <div id="cover-loading" class="cover-loading" hidden>
+          <span class="spinner"></span> Painting your cover...
+        </div>
+        <div id="cover-error" class="story-error" hidden>
+          <p>Oops, the cover got a little smudged! Let's try that again.</p>
+          <button type="button" id="cover-retry-btn" class="secondary-btn">Try again</button>
+        </div>
+
+        <button type="button" id="back-to-story-btn" class="text-link-btn">← Back to the story</button>
+      </div>
+
+      <!-- Step 2: cover + recap -->
+      <div id="ending-cover-step" class="ending-step" hidden>
+        <div class="cover-frame">
+          <img id="cover-img" class="cover-img" alt="Story cover illustration">
+          <div class="cover-overlay">
+            <h2 id="cover-title-text" class="cover-title-text"></h2>
+            <p id="cover-date-text" class="cover-date-text"></p>
+          </div>
+        </div>
+
+        <div class="ending-actions">
+          <button type="button" id="replay-narration-btn" class="secondary-btn">🔊 Replay the Story</button>
+          <button type="button" id="new-story-btn" class="secondary-btn">✨ Start a New Story</button>
+        </div>
+
+        <div class="story-recap">
+          <h3>Your Whole Story</h3>
+          <div id="story-recap-content"></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+
+<script src="icons.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
