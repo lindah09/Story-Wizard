@@ -94,6 +94,27 @@ function updateStartButton() {
 
 // ===================== Narration =====================
 
+// iOS Safari only allows speechSynthesis.speak() to produce sound if it's
+// triggered synchronously by a direct user gesture — every real narration
+// call in this app happens after an async fetch resolves (tap -> fetch story
+// -> then speak), which iOS treats as not user-initiated and silently
+// ignores. The fix is to "unlock" the speech engine with a real speak() call
+// made synchronously inside the very first tap/click anywhere on the page;
+// once unlocked, subsequent async-triggered speak() calls keep working for
+// the rest of the page's lifetime.
+function unlockSpeechSynthesisOnce() {
+  if (!('speechSynthesis' in window)) return;
+
+  const unlock = () => {
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(' '));
+    document.removeEventListener('touchstart', unlock);
+    document.removeEventListener('click', unlock);
+  };
+
+  document.addEventListener('touchstart', unlock, { once: true });
+  document.addEventListener('click', unlock, { once: true });
+}
+
 let cachedNarrationVoice;
 let narrationVoicePromise;
 
@@ -641,6 +662,7 @@ function renderRecap() {
 
 document.addEventListener('DOMContentLoaded', () => {
   injectChoiceIcons();
+  unlockSpeechSynthesisOnce();
   initNarrationToggle();
   initSetupScreen();
   initStoryScreen();
