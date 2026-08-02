@@ -162,12 +162,11 @@ async function speak(text, onDone) {
   }
 
   // Calling speak() immediately after cancel() can make WebKit silently drop
-  // the new utterance (no onend/onerror ever fires) — this is what caused
-  // the very first chunk to sometimes have no audio on iOS, right after the
-  // unlock utterance. Only cancel when something's actually active, and give
-  // the engine a moment to settle before speaking again.
-  const wasActive = window.speechSynthesis.speaking || window.speechSynthesis.pending;
-  if (wasActive) window.speechSynthesis.cancel();
+  // the new utterance (no onend/onerror ever fires). Always cancel (iOS's
+  // speaking/pending flags aren't reliable enough to branch on), but always
+  // give the engine a brief moment to settle before speaking again, rather
+  // than doing it back-to-back in the same tick.
+  window.speechSynthesis.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
   if (cachedNarrationVoice) utterance.voice = cachedNarrationVoice;
@@ -192,7 +191,7 @@ async function speak(text, onDone) {
   const estimatedMs = Math.max(8000, text.split(/\s+/).length * 500) + 5000;
   const safetyTimer = setTimeout(finish, estimatedMs);
 
-  setTimeout(() => window.speechSynthesis.speak(utterance), wasActive ? 150 : 0);
+  setTimeout(() => window.speechSynthesis.speak(utterance), 120);
   showNarrationToggle();
 }
 
