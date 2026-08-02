@@ -166,14 +166,25 @@ async function speak(text, onDone) {
   const utterance = new SpeechSynthesisUtterance(text);
   if (cachedNarrationVoice) utterance.voice = cachedNarrationVoice;
   utterance.rate = 0.95;
-  utterance.onend = () => {
+
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(safetyTimer);
     hideNarrationToggle();
     if (onDone) onDone();
   };
-  utterance.onerror = () => {
-    hideNarrationToggle();
-    if (onDone) onDone();
-  };
+
+  utterance.onend = finish;
+  utterance.onerror = finish;
+
+  // Safety net: if the browser silently drops the utterance instead of
+  // firing onend/onerror (as iOS Safari does when speech isn't "unlocked"),
+  // the story would otherwise be stuck waiting for narration forever. Force
+  // things along after a generous, text-length-based timeout.
+  const estimatedMs = Math.max(8000, text.split(/\s+/).length * 500) + 5000;
+  const safetyTimer = setTimeout(finish, estimatedMs);
 
   window.speechSynthesis.speak(utterance);
   showNarrationToggle();
