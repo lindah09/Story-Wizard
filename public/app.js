@@ -20,27 +20,13 @@ const storySetup = {
 };
 
 const TOTAL_CHUNKS = 8;
+const INTERACTION_DELAY_MS = 10000; // gives the child time to read/listen before choices appear
 
 const storyState = {
-  chunks: [], // { chunkNumber, text, sceneDescription, hasIllustration, interaction, isFinal, childResponse, illustrationUrl, revealed }
+  chunks: [], // { chunkNumber, text, sceneDescription, hasIllustration, interaction, isFinal, childResponse, illustrationUrl }
   viewIndex: -1, // index into chunks currently being displayed
   characterReferenceImage: null, // first illustration generated — reused as a visual anchor for every later illustration/cover
 };
-
-// ===================== TEMPORARY debug logging =====================
-// Remove this whole section (and the #debug-panel element in index.html)
-// once the iOS narration issue is diagnosed and fixed.
-
-function debugLog(msg) {
-  const panel = document.getElementById('debug-panel');
-  const time = new Date().toLocaleTimeString();
-  const line = `[${time}] ${msg}`;
-  console.log(line);
-  if (panel) {
-    panel.textContent += line + '\n';
-    panel.scrollTop = panel.scrollHeight;
-  }
-}
 
 // ===================== Screen switching =====================
 
@@ -109,32 +95,13 @@ function updateStartButton() {
 
 // ===================== Narration =====================
 
-// iOS Safari only allows speechSynthesis.speak() to produce sound if it's
-// triggered synchronously by a direct user gesture — every real narration
-// call in this app happens after an async fetch resolves (tap -> fetch story
-// -> then speak), which iOS treats as not user-initiated and silently
-// ignores. The fix is to "unlock" the speech engine with a real speak() call
-// made synchronously inside the very first tap/click anywhere on the page;
-// once unlocked, subsequent async-triggered speak() calls keep working for
-// the rest of the page's lifetime.
-function unlockSpeechSynthesisOnce() {
-  debugLog(`speechSynthesis in window: ${'speechSynthesis' in window}`);
-  if (!('speechSynthesis' in window)) return;
-
-  const unlock = () => {
-    debugLog('unlock: first tap detected, speaking unlock utterance');
-    const unlockUtterance = new SpeechSynthesisUtterance(' ');
-    unlockUtterance.onstart = () => debugLog('unlock: onstart fired');
-    unlockUtterance.onend = () => debugLog('unlock: onend fired');
-    unlockUtterance.onerror = (e) => debugLog(`unlock: onerror fired: ${e.error}`);
-    window.speechSynthesis.speak(unlockUtterance);
-    document.removeEventListener('touchstart', unlock);
-    document.removeEventListener('click', unlock);
-  };
-
-  document.addEventListener('touchstart', unlock, { once: true });
-  document.addEventListener('click', unlock, { once: true });
-}
+// iOS Safari requires every speechSynthesis.speak() call to happen
+// synchronously inside a genuine user gesture handler (tap/click) — not just
+// once per session, but every single time. A speak() call made after any
+// async gap (e.g. after fetching the next story chunk) gets silently
+// dropped: no sound, and no onend/onerror either. So narration here is
+// strictly tap-to-play — every call site below calls speak() directly
+// inside a button's own click handler, never from inside a .then()/await.
 
 let cachedNarrationVoice;
 let narrationVoicePromise;
@@ -158,120 +125,42 @@ function getNarrationVoice() {
 
   narrationVoicePromise = new Promise((resolve) => {
     const existing = window.speechSynthesis.getVoices();
-    debugLog(`getNarrationVoice: initial getVoices() length = ${existing.length}`);
     if (existing.length) {
-      const picked = pickNarrationVoice(existing);
-      debugLog(`getNarrationVoice: picked "${picked ? picked.name : 'null'}"`);
-      resolve(picked);
+      resolve(pickNarrationVoice(existing));
       return;
     }
     window.speechSynthesis.onvoiceschanged = () => {
-      const voices = window.speechSynthesis.getVoices();
-      const picked = pickNarrationVoice(voices);
-      debugLog(`getNarrationVoice: voiceschanged fired, length = ${voices.length}, picked "${picked ? picked.name : 'null'}"`);
-      resolve(picked);
+      resolve(pickNarrationVoice(window.speechSynthesis.getVoices()));
     };
     // Fallback in case voiceschanged never fires on this browser.
-    setTimeout(() => {
-      const voices = window.speechSynthesis.getVoices();
-      const picked = pickNarrationVoice(voices);
-      debugLog(`getNarrationVoice: 1s timeout fallback, length = ${voices.length}, picked "${picked ? picked.name : 'null'}"`);
-      resolve(picked);
-    }, 1000);
+    setTimeout(() => resolve(pickNarrationVoice(window.speechSynthesis.getVoices())), 1000);
   });
 
   return narrationVoicePromise;
 }
 
-async function speak(text, onDone) {
-  debugLog(`speak() called, text length ${text ? text.length : 0} chars`);
-
-  if (!('speechSynthesis' in window) || !text) {
-    debugLog('speak(): no speechSynthesis or empty text, bailing');
-    if (onDone) onDone();
-    return;
-  }
+// Must be called directly inside a user gesture handler (see note above) —
+// never from inside an async continuation. Safe to call repeatedly (e.g.
+// tapping "Read aloud" again mid-narration just restarts it): cancel()
+// always stops whatever's currently playing before the new utterance
+// starts, each call is independent.
+async function speak(text) {
+  if (!('speechSynthesis' in window) || !text) return;
 
   if (cachedNarrationVoice === undefined) {
     cachedNarrationVoice = await getNarrationVoice();
   }
-  debugLog(`speak(): using voice "${cachedNarrationVoice ? cachedNarrationVoice.name : 'browser default'}"`);
 
   // Calling speak() immediately after cancel() can make WebKit silently drop
-  // the new utterance (no onend/onerror ever fires). Always cancel (iOS's
-  // speaking/pending flags aren't reliable enough to branch on), but always
-  // give the engine a brief moment to settle before speaking again, rather
-  // than doing it back-to-back in the same tick.
-  debugLog(`speak(): before cancel — speaking=${window.speechSynthesis.speaking}, pending=${window.speechSynthesis.pending}, paused=${window.speechSynthesis.paused}`);
+  // the new utterance (no onend/onerror ever fires), so always give the
+  // engine a brief moment to settle before speaking again.
   window.speechSynthesis.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
   if (cachedNarrationVoice) utterance.voice = cachedNarrationVoice;
   utterance.rate = 0.95;
 
-  let finished = false;
-  const finish = (reason) => {
-    debugLog(`speak(): finish() called, reason=${reason}, already finished=${finished}`);
-    if (finished) return;
-    finished = true;
-    clearTimeout(safetyTimer);
-    hideNarrationToggle();
-    if (onDone) onDone();
-  };
-
-  utterance.onstart = () => debugLog('speak(): utterance onstart fired');
-  utterance.onend = () => finish('onend');
-  utterance.onerror = (e) => finish(`onerror: ${e.error}`);
-
-  // Safety net: if the browser silently drops the utterance instead of
-  // firing onend/onerror (as iOS Safari does when speech isn't "unlocked"),
-  // the story would otherwise be stuck waiting for narration forever. Force
-  // things along after a generous, text-length-based timeout.
-  const estimatedMs = Math.max(8000, text.split(/\s+/).length * 500) + 5000;
-  const safetyTimer = setTimeout(() => finish(`safety timeout after ${estimatedMs}ms`), estimatedMs);
-
-  setTimeout(() => {
-    debugLog(`speak(): calling speechSynthesis.speak() now — speaking=${window.speechSynthesis.speaking}, pending=${window.speechSynthesis.pending}`);
-    window.speechSynthesis.speak(utterance);
-    debugLog(`speak(): speak() call returned — speaking=${window.speechSynthesis.speaking}, pending=${window.speechSynthesis.pending}`);
-  }, 120);
-  showNarrationToggle();
-}
-
-// ===================== Persistent narration pause/resume control =====================
-//
-// speechSynthesis.paused/.speaking can read stale or racy values for a brief
-// moment right after speak()/pause()/resume() is called in some browsers, so
-// the button's own click actions — not re-reading that state — are the
-// source of truth for what label to show.
-
-let narrationToggleBtn;
-
-function initNarrationToggle() {
-  narrationToggleBtn = document.getElementById('narration-toggle-btn');
-
-  narrationToggleBtn.addEventListener('click', () => {
-    if (!('speechSynthesis' in window)) return;
-
-    if (window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-      narrationToggleBtn.textContent = '⏸️ Pause';
-    } else if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.pause();
-      narrationToggleBtn.textContent = '▶️ Resume';
-    }
-  });
-}
-
-function showNarrationToggle() {
-  if (!narrationToggleBtn) return;
-  narrationToggleBtn.hidden = false;
-  narrationToggleBtn.textContent = '⏸️ Pause';
-}
-
-function hideNarrationToggle() {
-  if (!narrationToggleBtn) return;
-  narrationToggleBtn.hidden = true;
+  setTimeout(() => window.speechSynthesis.speak(utterance), 120);
 }
 
 // ===================== Story screen =====================
@@ -295,6 +184,7 @@ function cacheStoryEls() {
   storyEls.illustrationLoading = document.getElementById('illustration-loading');
   storyEls.card = document.getElementById('story-card');
   storyEls.text = document.getElementById('story-text');
+  storyEls.readAloudBtn = document.getElementById('story-read-aloud-btn');
   storyEls.loading = document.getElementById('story-loading');
   storyEls.interaction = document.getElementById('story-interaction');
   storyEls.error = document.getElementById('story-error');
@@ -316,6 +206,7 @@ function beginStory() {
   storyEls.card.hidden = false;
   storyEls.error.hidden = true;
   storyEls.text.textContent = '';
+  storyEls.readAloudBtn.hidden = true;
   storyEls.illustration.hidden = true;
   updateProgress(0);
   requestNextChunk();
@@ -323,7 +214,6 @@ function beginStory() {
 
 function resetToSetup() {
   window.speechSynthesis && window.speechSynthesis.cancel();
-  hideNarrationToggle();
   storyState.chunks = [];
   storyState.viewIndex = -1;
   storyState.characterReferenceImage = null;
@@ -371,7 +261,6 @@ function hideInteraction() {
 function goToChunk(index) {
   if (index < 0 || index >= storyState.chunks.length) return;
   window.speechSynthesis && window.speechSynthesis.cancel();
-  hideNarrationToggle();
   storyEls.error.hidden = true;
   storyState.viewIndex = index;
   renderChunk(storyState.chunks[index]);
@@ -408,7 +297,6 @@ async function requestNextChunk() {
       isFinal: data.isFinal,
       childResponse: null,
       illustrationUrl: null,
-      revealed: false,
     });
     storyState.viewIndex = storyState.chunks.length - 1;
 
@@ -483,24 +371,27 @@ function renderChunk(chunk) {
 
   storyEls.text.textContent = chunk.text;
 
+  // Narration is tap-to-play only (see note above speak()) and never blocks
+  // the story — text and choices/answer show immediately either way.
+  storyEls.readAloudBtn.hidden = false;
+  storyEls.readAloudBtn.onclick = () => speak(chunk.text);
+
   if (chunk.isFinal) {
     hideInteraction();
-    chunk.revealed = true;
-    speak(chunk.text, () => setTimeout(goToEndingScreen, 2000));
+    setTimeout(goToEndingScreen, 2000);
     return;
   }
 
-  if (chunk.revealed) {
-    // Already been seen before (revisited via Back/Forward) — show
-    // everything immediately instead of gating behind narration finishing.
-    hideInteraction();
-    if (chunk.interaction) renderInteraction(chunk);
-    speak(chunk.text);
-  } else {
-    chunk.revealed = true;
-    speak(chunk.text, () => {
-      if (chunk.interaction) renderInteraction(chunk);
-    });
+  hideInteraction();
+  if (chunk.interaction) {
+    // Give the child time to actually read/listen before choices appear.
+    // Guard against a stale timer firing after the child has already
+    // navigated away to a different chunk in the meantime.
+    setTimeout(() => {
+      if (storyState.chunks[storyState.viewIndex] === chunk) {
+        renderInteraction(chunk);
+      }
+    }, INTERACTION_DELAY_MS);
   }
 }
 
@@ -721,8 +612,6 @@ function renderRecap() {
 
 document.addEventListener('DOMContentLoaded', () => {
   injectChoiceIcons();
-  unlockSpeechSynthesisOnce();
-  initNarrationToggle();
   initSetupScreen();
   initStoryScreen();
   initEndingScreen();
