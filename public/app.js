@@ -27,6 +27,21 @@ const storyState = {
   characterReferenceImage: null, // first illustration generated — reused as a visual anchor for every later illustration/cover
 };
 
+// ===================== TEMPORARY debug logging =====================
+// Remove this whole section (and the #debug-panel element in index.html)
+// once the iOS narration issue is diagnosed and fixed.
+
+function debugLog(msg) {
+  const panel = document.getElementById('debug-panel');
+  const time = new Date().toLocaleTimeString();
+  const line = `[${time}] ${msg}`;
+  console.log(line);
+  if (panel) {
+    panel.textContent += line + '\n';
+    panel.scrollTop = panel.scrollHeight;
+  }
+}
+
 // ===================== Screen switching =====================
 
 function showScreen(id) {
@@ -103,10 +118,16 @@ function updateStartButton() {
 // once unlocked, subsequent async-triggered speak() calls keep working for
 // the rest of the page's lifetime.
 function unlockSpeechSynthesisOnce() {
+  debugLog(`speechSynthesis in window: ${'speechSynthesis' in window}`);
   if (!('speechSynthesis' in window)) return;
 
   const unlock = () => {
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(' '));
+    debugLog('unlock: first tap detected, speaking unlock utterance');
+    const unlockUtterance = new SpeechSynthesisUtterance(' ');
+    unlockUtterance.onstart = () => debugLog('unlock: onstart fired');
+    unlockUtterance.onend = () => debugLog('unlock: onend fired');
+    unlockUtterance.onerror = (e) => debugLog(`unlock: onerror fired: ${e.error}`);
+    window.speechSynthesis.speak(unlockUtterance);
     document.removeEventListener('touchstart', unlock);
     document.removeEventListener('click', unlock);
   };
@@ -137,22 +158,36 @@ function getNarrationVoice() {
 
   narrationVoicePromise = new Promise((resolve) => {
     const existing = window.speechSynthesis.getVoices();
+    debugLog(`getNarrationVoice: initial getVoices() length = ${existing.length}`);
     if (existing.length) {
-      resolve(pickNarrationVoice(existing));
+      const picked = pickNarrationVoice(existing);
+      debugLog(`getNarrationVoice: picked "${picked ? picked.name : 'null'}"`);
+      resolve(picked);
       return;
     }
     window.speechSynthesis.onvoiceschanged = () => {
-      resolve(pickNarrationVoice(window.speechSynthesis.getVoices()));
+      const voices = window.speechSynthesis.getVoices();
+      const picked = pickNarrationVoice(voices);
+      debugLog(`getNarrationVoice: voiceschanged fired, length = ${voices.length}, picked "${picked ? picked.name : 'null'}"`);
+      resolve(picked);
     };
     // Fallback in case voiceschanged never fires on this browser.
-    setTimeout(() => resolve(pickNarrationVoice(window.speechSynthesis.getVoices())), 1000);
+    setTimeout(() => {
+      const voices = window.speechSynthesis.getVoices();
+      const picked = pickNarrationVoice(voices);
+      debugLog(`getNarrationVoice: 1s timeout fallback, length = ${voices.length}, picked "${picked ? picked.name : 'null'}"`);
+      resolve(picked);
+    }, 1000);
   });
 
   return narrationVoicePromise;
 }
 
 async function speak(text, onDone) {
+  debugLog(`speak() called, text length ${text ? text.length : 0} chars`);
+
   if (!('speechSynthesis' in window) || !text) {
+    debugLog('speak(): no speechSynthesis or empty text, bailing');
     if (onDone) onDone();
     return;
   }
@@ -160,12 +195,14 @@ async function speak(text, onDone) {
   if (cachedNarrationVoice === undefined) {
     cachedNarrationVoice = await getNarrationVoice();
   }
+  debugLog(`speak(): using voice "${cachedNarrationVoice ? cachedNarrationVoice.name : 'browser default'}"`);
 
   // Calling speak() immediately after cancel() can make WebKit silently drop
   // the new utterance (no onend/onerror ever fires). Always cancel (iOS's
   // speaking/pending flags aren't reliable enough to branch on), but always
   // give the engine a brief moment to settle before speaking again, rather
   // than doing it back-to-back in the same tick.
+  debugLog(`speak(): before cancel — speaking=${window.speechSynthesis.speaking}, pending=${window.speechSynthesis.pending}, paused=${window.speechSynthesis.paused}`);
   window.speechSynthesis.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
@@ -173,7 +210,8 @@ async function speak(text, onDone) {
   utterance.rate = 0.95;
 
   let finished = false;
-  const finish = () => {
+  const finish = (reason) => {
+    debugLog(`speak(): finish() called, reason=${reason}, already finished=${finished}`);
     if (finished) return;
     finished = true;
     clearTimeout(safetyTimer);
@@ -181,17 +219,22 @@ async function speak(text, onDone) {
     if (onDone) onDone();
   };
 
-  utterance.onend = finish;
-  utterance.onerror = finish;
+  utterance.onstart = () => debugLog('speak(): utterance onstart fired');
+  utterance.onend = () => finish('onend');
+  utterance.onerror = (e) => finish(`onerror: ${e.error}`);
 
   // Safety net: if the browser silently drops the utterance instead of
   // firing onend/onerror (as iOS Safari does when speech isn't "unlocked"),
   // the story would otherwise be stuck waiting for narration forever. Force
   // things along after a generous, text-length-based timeout.
   const estimatedMs = Math.max(8000, text.split(/\s+/).length * 500) + 5000;
-  const safetyTimer = setTimeout(finish, estimatedMs);
+  const safetyTimer = setTimeout(() => finish(`safety timeout after ${estimatedMs}ms`), estimatedMs);
 
-  setTimeout(() => window.speechSynthesis.speak(utterance), 120);
+  setTimeout(() => {
+    debugLog(`speak(): calling speechSynthesis.speak() now — speaking=${window.speechSynthesis.speaking}, pending=${window.speechSynthesis.pending}`);
+    window.speechSynthesis.speak(utterance);
+    debugLog(`speak(): speak() call returned — speaking=${window.speechSynthesis.speaking}, pending=${window.speechSynthesis.pending}`);
+  }, 120);
   showNarrationToggle();
 }
 
